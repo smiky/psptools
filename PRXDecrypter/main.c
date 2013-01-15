@@ -41,7 +41,7 @@ PSP_MAIN_THREAD_ATTR(0);
 #define clearscreen	pspDebugScreenClear
 #define DEST 		"ms0:/enc/"
 #define OUT			"ms0:/dec/"
-#define VERSION 	"2.6c"
+#define VERSION 	"2.6b_0.1s"
 #define UPDATED		"SmikY"
 
 #define buffer_size 		10000000

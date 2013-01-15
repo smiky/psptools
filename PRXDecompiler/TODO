@@ -1,0 +1,9 @@
+The list is long:
+ - Support for fpu
+ - Improve the detection of subroutine args
+ - Missing shape analysis
+ - Missing points-to analysis
+ - Detection of loop types
+ - Missing type reconstruction (unsigned/signed, size, etc)
+ - ...
+

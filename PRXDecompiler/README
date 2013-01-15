@@ -1,0 +1,34 @@
+pspdecompiler: A simple tool to decompile Sony PSP(tm) PRX files.
+
+pspdecompiler is licensed under the AFL v2.0. Please read the LICENSE file for further information.
+
+Requirements:
+  - libexpat1-dev
+
+Compiling:
+
+make clean
+make all
+
+Usage:
+  pspdecompiler [-g] [-n nidsfile] [-v] prxfile
+Where:
+  -g    output graphviz dot
+  -t    print depth first search number
+  -r    print the reverse depth first search number
+  -d    print the dominator
+  -x    print the reverse dominator
+  -f    print the frontier
+  -z    print the reverse frontier
+  -p    print phi functions
+  -q    print code into nodes
+  -s    print structures
+  -e    print edge types
+  -c    output code
+  -v    increase verbosity
+  -n    specify nids xml file
+  -i    print prx info
+
+
+Special thanks for TyRaNiD
+
