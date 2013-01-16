@@ -836,7 +836,7 @@ bool CProcessPrx::LoadFromFile(const char *szFilename) {
 			if (m_iPHCount > 0) {
 				iAddr = (m_pElfPrograms[0].iPaddr & 0x7FFFFFFF) - m_pElfPrograms[0].iOffset;
 				/*pData = m_pElfBin + iAddr;*/
-				pData = m_iElfSize - m_pElfPrograms[0].iOffset - iAddr > 0 ? m_pElfBin + iAddr : NULL;
+				pData = m_iElfSize - m_pElfPrograms[0].iOffset > iAddr ? m_pElfBin + iAddr : NULL;
 			}
 		} else {
 			pData = pInfoSect->pData;
