@@ -1,17 +1,9 @@
 	.set noreorder
 
-#include "pspstub.s"
+#include "pspimport.s"
 
-	STUB_START "SysMemUserForUser",0x40080011,0x00010005
-	STUB_FUNC  0xD8DE5C1E,SysMemUserForUser_D8DE5C1E
-	STUB_END
+	IMPORT_START "sceResmgr_driver",0x00090000
+  	IMPORT_FUNC  "sceResmgr_driver",0x8E6C62C8,sceResmgr_driver_8E6C62C8
 
-	STUB_START "sceResmgr_driver",0x00090011,0x00020005
-	STUB_FUNC  0x8E6C62C8,sceResmgr_driver_8E6C62C8
-	STUB_FUNC  0x9DC14891,sceResmgr_driver_9DC14891
-	STUB_END
-
-	STUB_START "sceResmgr",0x40090011,0x00020005
-	STUB_FUNC  0x8E6C62C8,sceResmgr_8E6C62C8
-	STUB_FUNC  0x9DC14891,sceResmgr_9DC14891
-	STUB_END
+	IMPORT_START "sceResmgr",0x40090000
+	IMPORT_FUNC  "sceResmgr",0x8E6C62C8,sceResmgr_8E6C62C8
