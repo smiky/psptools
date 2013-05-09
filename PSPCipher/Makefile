@@ -1,4 +1,4 @@
-TARGET = pspcipher
+TARGET = PSPCipher
 OBJS = main.o CipherBridge.o
 
 INCDIR = ./include
@@ -10,11 +10,11 @@ LIBDIR = ./lib
 LDFLAGS = 
 LIBS = -lpspkubridge
 
-PSP_FW_VERSION = 271
+PSP_FW_VERSION = 620
 PSP_LARGE_MEMORY = 1
 
 EXTRA_TARGETS = EBOOT.PBP
-PSP_EBOOT_TITLE = pspcipher
+PSP_EBOOT_TITLE = PSPCipher
 
 BUILD_PRX = 1
 
